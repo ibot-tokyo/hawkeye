@@ -72,25 +72,25 @@ class ViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
         var dir = "●"
         
         if (centerX - qrX > 30) {
-            if (centerY - qrY > 50) {
-                dir = "↘"
-            } else if (centerY - qrY < -50) {
-                dir = "↗"
-            } else {
-                dir = "→"
-            }
+            dir = "→"
         } else if (centerX - qrX < -30) {
-            if (centerY - qrY > 50) {
+            dir = "←"
+        }
+
+        if (centerY - qrY > 50) {
+            if (dir == "→") {
+                dir = "↘"
+            } else if (dir == "←") {
                 dir = "↙"
-            } else if (centerY - qrY < -50) {
+            } else {
+                dir = "↓"
+            }
+        } else if (centerY - qrY < -50) {
+            if (dir == "→") {
+                dir = "↗"
+            } else if (dir == "←") {
                 dir = "↖"
             } else {
-                dir = "←"
-            }
-        } else {
-            if (centerY - qrY > 50) {
-                dir = "↓"
-            } else if (centerY - qrY < -50) {
                 dir = "↑"
             }
         }
