@@ -7,19 +7,97 @@
 //
 
 import UIKit
+import AVFoundation
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
 
+    @IBOutlet weak var previewView: UIView!
+    @IBOutlet weak var dirLabel: UILabel!
+    
+    let captureSession = AVCaptureSession()
+    var videoLayer: AVCaptureVideoPreviewLayer?
+    
+    var markView: UIView!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
+        
+        let videoDevice = AVCaptureDevice.defaultDevice(withMediaType: AVMediaTypeVideo)
+        let videoInput = try! AVCaptureDeviceInput.init(device: videoDevice)
+        captureSession.addInput(videoInput)
+        
+        let metadataOutput = AVCaptureMetadataOutput()
+        captureSession.addOutput(metadataOutput)
+        
+        metadataOutput.setMetadataObjectsDelegate(self as AVCaptureMetadataOutputObjectsDelegate, queue: DispatchQueue.main)
+        metadataOutput.metadataObjectTypes = [AVMetadataObjectTypeQRCode]
+        
+        videoLayer = AVCaptureVideoPreviewLayer.init(session: captureSession)
+        videoLayer?.frame = previewView.bounds
+        videoLayer?.videoGravity = AVLayerVideoGravityResizeAspectFill
+        previewView.layer.addSublayer(videoLayer!)
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.captureSession.startRunning()
+        }
     }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+    
+    func captureOutput(_ captureOutput: AVCaptureOutput!, didOutputMetadataObjects metadataObjects: [Any]!, from connection: AVCaptureConnection!) {
+        if (markView == nil) {
+            markView = UIView()
+            markView.layer.borderWidth = 4
+            markView.layer.borderColor = UIColor.red.cgColor
+            markView.frame = CGRect(x: 0, y: 0, width: 0, height: 0)
+            view.addSubview(markView)
+        }
+        
+        for metadata in metadataObjects as! [AVMetadataMachineReadableCodeObject] {
+            if metadata.type == AVMetadataObjectTypeQRCode {
+                let barCode = videoLayer?.transformedMetadataObject(for: metadata) as! AVMetadataMachineReadableCodeObject
+                markView!.frame = barCode.bounds
+                
+                showDir(barcodeBounds: barCode.bounds)
+                return
+            }
+        }
     }
+    
+    func showDir(barcodeBounds: CGRect) {
+        let centerX = previewView.bounds.maxX / 2
+        let centerY = previewView.bounds.maxY / 2
 
+        let qrX = (barcodeBounds.minX + barcodeBounds.maxX) / 2
+        let qrY = (barcodeBounds.minY + barcodeBounds.maxY) / 2
+        
+        var dir = "●"
+        
+        if (centerX - qrX > 30) {
+            if (centerY - qrY > 50) {
+                dir = "↘"
+            } else if (centerY - qrY < -50) {
+                dir = "↗"
+            } else {
+                dir = "→"
+            }
+        } else if (centerX - qrX < -30) {
+            if (centerY - qrY > 50) {
+                dir = "↙"
+            } else if (centerY - qrY < -50) {
+                dir = "↖"
+            } else {
+                dir = "←"
+            }
+        } else {
+            if (centerY - qrY > 50) {
+                dir = "↓"
+            } else if (centerY - qrY < -50) {
+                dir = "↑"
+            }
+        }
+        
+        dirLabel.text = dir
+        print(dir)
+    }
 
 }
 
